@@ -1,0 +1,43 @@
+/*车辆管理系统的创建*/
+CREATE DATABASE IF NOT EXISTS transport DEFAULT CHARSET = gbk COLLATE = gbk_chinese_ci;
+USE transport;
+CREATE TABLE team(
+   TeamID CHAR(10) NOT NULL PRIMARY KEY,
+   TeamName VARCHAR(15) NOT NULL
+   );
+   
+CREATE TABLE driver(
+   DriverID CHAR(10) NOT NULL PRIMARY KEY,
+   DriverName CHAR(8) NOT NULL,
+   PhoneNumber CHAR(11) NOT NULL,
+   TeamID VARCHAR(10) NOT NULL,
+   EmploymentTerm INT NOT NULL COMMENT'以月计',
+   EmploymentStartTime DATETIME NOT NULL,
+   FOREIGN KEY(TeamID)
+      REFERENCES team(TeamID)
+      ON DELETE RESTRICT ON UPDATE RESTRICT
+      );
+      
+CREATE TABLE vehicle(
+    Vcode VARCHAR(10) NOT NULL PRIMARY KEY,
+    Manufacturer VARCHAR(20) NOT NULL,
+    MDate DATETIME NOT NULL,
+    TeamID VARCHAR(10) NOT NULL,
+    FOREIGN KEY (TeamID)
+       REFERENCES team(TeamID)
+       ON DELETE RESTRICT ON UPDATE RESTRICT
+       );
+       
+CREATE TABLE d_v_usage(
+   DriverID CHAR(10) NOT NULL,
+   Vcode VARCHAR(10) NOT NULL,
+   UDate DATETIME NOT NULL,
+   Mileage DECIMAL(8,2) DEFAULT 0,
+   PRIMARY KEY(DriverID,VCode), /*主键*/
+   FOREIGN KEY(DriverID) /*外键*/
+     REFERENCES driver(DriverID)
+     ON DELETE RESTRICT ON UPDATE RESTRICT,
+	FOREIGN KEY(VCode)
+	 REFERENCES vehicle(VCode)
+     ON DELETE RESTRICT ON UPDATE RESTRICT
+     );
