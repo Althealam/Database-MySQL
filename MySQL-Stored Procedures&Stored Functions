@@ -1,0 +1,62 @@
+/*存储过程的应用*/
+
+/*课本p198 例9.11*/
+/*复制订单表orders中符合条件的纪录，创建“订单商品表myorder_comms，在该表中增加商品种类数、商品数量和订单商品编号列*/
+/*其中商品种类数和商品数量由订单项表orderitems统计和汇总得到，查询获得的商品编号连在一起存放在订单商品编号列中*/
+USE emarket;
+DROP PROCEDURE IF EXISTS proc_myorder_comms;
+DELIMITER $$
+CREATE PROCEDURE proc_myorder_comms(IN uid char(16),IN cdate char(10))
+BEGIN
+  DROP TABLE IF EXISTS myorder_comms;
+  CREATE TABLE myorder_comms AS (SELECT * FROM orders
+     WHERE 账户名 LIKE uid AND 下单时间>=cdata);
+  ALTER TABLE myorder_comms
+    ADD 商品种类数 int(2),
+    ADD 商品数量 int(3),
+    ADD 订单商品编号 varchar(200);
+END $$
+DELIMITER ;
+
+CALL proc_myorder_comms('easy-bbb.com%','2019.01.01');
+
+
+/*存储函数的应用*/
+/*利用存储函数更新数据库*/
+/*购物过程：如果指定商品库存量满足购物数量要求，则从商品表commodity库存量中减去购物数量，在订单表orders中添加订单编号、账户名和订货数量纪录，在订单项表orderitems中添加订单编号、订货数量、下单时间纪录*/
+SET GLOBAL log_bin_trust_function_creators=1;
+USE emarket;
+DROP FUNCTION IF EXISTS fshopping;
+DELIMITER $$
+CREATE FUNCTION fshopping
+  (uid char(16),oid int(4),cid char(6),num int(2))
+  RETURNS int
+  BEGIN
+     DECLARE n int(4);
+     DECLARE price float(6,2);
+     SELECT COUNT(*) FROM orders WHERE 订单编号=oid INTO n;
+     IF n=1 THEN
+        RETURN -1;
+	 END IF;
+     SELECT COUNT(*),价格 FROM commodity
+     WHERE 商品编号=cid AND 库存量>=num INTO n,price;
+	 IF n=1 THEN
+        UPDATE commodity SET 库存量=库存量-num
+          WHERE 商品编号=cid;
+		INSERT INTO orders(订单编号,账户名,支付金额,下单时间)
+        VALUES(oid,uid,num*price,NOW());
+        INSERT INTO orderitems(订单编号,商品编号,订货数量)
+		VALUES(oid,cid,num);
+        RETURN 1;
+	 ELSE 
+        RETURN -2;
+	 END IF;
+  END $$
+  DELIMITER ;
+  
+  SET @oid=101;
+  SET @result=fshopping('sunrh-phei.net',@oid+1,'2A1602',5);
+  SELECT @oid+1,IF(@result=1,'购物成功',IF(@result=-1,'订单编号已经存在','商品库存量不够！')) AS 执行结果;
+  SET @result=fshopping('sunrh-phei.net',@oid+1,'2A1602',5);
+  SELECT @oid+1,IF(@result=1,'购物成功',IF(@result=-1,'订单编号已经存在','商品库存量不够')) AS 执行结果;
+     
